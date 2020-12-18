@@ -116,6 +116,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.regex.Pattern;
 
@@ -508,13 +509,17 @@ public class KafkaConsumerTest {
 
         final KafkaConsumer<String, String> consumer = newConsumer(time, client, subscription, metadata, assignor, true, groupInstanceId);
         consumer.subscribe(singleton(topic), getConsumerRebalanceListener(consumer));
-        prepareRebalance(client, node, assignor, singletonList(tp0), null);
+        // Since we would enable the heartbeat thread after received join-response which could
+        // send the sync-group on behalf of the consumer if it is enqueued, we may still complete
+        // the rebalance and send out the fetch; in order to avoid it we do not prepare sync response here.
+        client.prepareResponseFrom(FindCoordinatorResponse.prepareResponse(Errors.NONE, node), node);
+        Node coordinator = new Node(Integer.MAX_VALUE - node.id(), node.host(), node.port());
+        client.prepareResponseFrom(joinGroupFollowerResponse(assignor, 1, memberId, leaderId, Errors.NONE), coordinator);
 
         consumer.poll(Duration.ZERO);
 
-        // The underlying client should NOT get a fetch request
         final Queue<ClientRequest> requests = client.requests();
-        Assert.assertEquals(0, requests.size());
+        Assert.assertEquals(0, requests.stream().filter(request -> request.apiKey().equals(ApiKeys.FETCH)).count());
     }
 
     @SuppressWarnings("deprecation")
@@ -1253,9 +1258,6 @@ public class KafkaConsumerTest {
         time.sleep(heartbeatIntervalMs);
         TestUtils.waitForCondition(heartbeatReceived::get, "Heartbeat response did not occur within timeout.");
 
-        consumer.updateAssignmentMetadataIfNeeded(time.timer(Long.MAX_VALUE));
-        assertTrue(heartbeatReceived.get());
-
         RuntimeException unsubscribeException = assertThrows(RuntimeException.class, consumer::unsubscribe);
         assertEquals(partitionLost + singleTopicPartition, unsubscribeException.getCause().getMessage());
     }
@@ -1827,7 +1829,7 @@ public class KafkaConsumerTest {
     }
 
     @Test
-    public void testReturnRecordsDuringRebalance() {
+    public void testReturnRecordsDuringRebalance() throws InterruptedException {
         Time time = new MockTime(1L);
         SubscriptionState subscription = new SubscriptionState(new LogContext(), OffsetResetStrategy.EARLIEST);
         ConsumerMetadata metadata = createMetadata(subscription);
@@ -1842,15 +1844,13 @@ public class KafkaConsumerTest {
         Node node = metadata.fetch().nodes().get(0);
         Node coordinator = prepareRebalance(client, node, assignor, Arrays.asList(tp0, t2p0), null);
 
-        // a first poll with zero millisecond would not complete the rebalance
-        consumer.poll(Duration.ZERO);
+        // a poll with non-zero milliseconds would complete three round-trips (discover, join, sync)
+        TestUtils.waitForCondition(() -> {
+            consumer.poll(Duration.ofMillis(100L));
+            return consumer.assignment().equals(Utils.mkSet(tp0, t2p0));
+        }, "Does not complete rebalance in time");
 
         assertEquals(Utils.mkSet(topic, topic2), consumer.subscription());
-        assertEquals(Collections.emptySet(), consumer.assignment());
-
-        // a second poll with non-zero milliseconds would complete three round-trips (discover, join, sync)
-        consumer.poll(Duration.ofMillis(100L));
-
         assertEquals(Utils.mkSet(tp0, t2p0), consumer.assignment());
 
         // prepare a response of the outstanding fetch so that we have data available on the next poll
@@ -1903,7 +1903,6 @@ public class KafkaConsumerTest {
 
         // mock rebalance responses
         client.respondFrom(joinGroupFollowerResponse(assignor, 2, "memberId", "leaderId", Errors.NONE), coordinator);
-        client.prepareResponseFrom(syncGroupResponse(Arrays.asList(tp0, t3p0), Errors.NONE), coordinator);
 
         // we need to poll 1) for getting the join response, and then send the sync request;
         //                 2) for getting the sync response
@@ -1919,12 +1918,19 @@ public class KafkaConsumerTest {
         fetches1.put(tp0, new FetchInfo(3, 1));
         client.respondFrom(fetchResponse(fetches1), node);
 
-        records = consumer.poll(Duration.ZERO);
+        // now complete the rebalance
+        client.respondFrom(syncGroupResponse(Arrays.asList(tp0, t3p0), Errors.NONE), coordinator);
+
+        AtomicInteger count = new AtomicInteger(0);
+        TestUtils.waitForCondition(() -> {
+            ConsumerRecords<String, String> recs = consumer.poll(Duration.ofMillis(100L));
+            return consumer.assignment().equals(Utils.mkSet(tp0, t3p0)) && count.addAndGet(recs.count()) == 1;
+
+        }, "Does not complete rebalance in time");
 
         // should have t3 but not sent yet the t3 records
         assertEquals(Utils.mkSet(topic, topic3), consumer.subscription());
         assertEquals(Utils.mkSet(tp0, t3p0), consumer.assignment());
-        assertEquals(1, records.count());
         assertEquals(4L, consumer.position(tp0));
         assertEquals(0L, consumer.position(t3p0));
 
@@ -1933,10 +1939,13 @@ public class KafkaConsumerTest {
         fetches1.put(t3p0, new FetchInfo(0, 100));
         client.respondFrom(fetchResponse(fetches1), node);
 
-        records = consumer.poll(Duration.ZERO);
+        count.set(0);
+        TestUtils.waitForCondition(() -> {
+            ConsumerRecords<String, String> recs = consumer.poll(Duration.ofMillis(100L));
+            return count.addAndGet(recs.count()) == 101;
 
-        // should have t3 but not sent yet the t3 records
-        assertEquals(101, records.count());
+        }, "Does not complete rebalance in time");
+
         assertEquals(5L, consumer.position(tp0));
         assertEquals(100L, consumer.position(t3p0));
 
