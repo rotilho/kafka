@@ -37,7 +37,7 @@
               files="AbstractResponse.java"/>
 
     <suppress checks="MethodLength"
-              files="KerberosLogin.java|RequestResponseTest.java|ConnectMetricsRegistry.java|KafkaConsumer.java"/>
+              files="(KerberosLogin|RequestResponseTest|ConnectMetricsRegistry|KafkaConsumer|AbstractStickyAssignor).java"/>
 
     <suppress checks="ParameterNumber"
               files="NetworkClient.java|FieldSpec.java"/>
@@ -141,6 +141,9 @@
 
     <suppress checks="MethodLength"
               files="(RequestResponse|WorkerSinkTask)Test.java"/>
+
+    <suppress checks="JavaNCSS"
+              files="DistributedHerderTest.java"/>
 
     <!-- Streams -->
     <suppress checks="ClassFanOutComplexity"
