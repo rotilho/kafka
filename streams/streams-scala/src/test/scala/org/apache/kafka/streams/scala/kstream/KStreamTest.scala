@@ -18,6 +18,7 @@ package org.apache.kafka.streams.scala.kstream
 
 import java.time.Duration.ofSeconds
 import java.time.Instant
+import java.util.regex.Pattern
 
 import org.apache.kafka.streams.KeyValue
 import org.apache.kafka.streams.kstream.{
@@ -449,4 +450,22 @@ class KStreamTest extends FlatSpec with Matchers with TestDriver {
     val transformNode = builder.build().describe().subtopologies().asScala.head.nodes().asScala.toList(1)
     transformNode.name() shouldBe "my-name"
   }
+
+  "Setting a name for a pattern source" should "pass the name to the topology" in {
+    val builder = new StreamsBuilder()
+    val topicsPattern = "t-[A-Za-z0-9-].suffix"
+    val sinkTopic = "sink"
+
+    builder
+      .stream[String, String](Pattern.compile(topicsPattern))(
+        Consumed.`with`[String, String].withName("my-fancy-name")
+      )
+      .to(sinkTopic)
+
+    import scala.jdk.CollectionConverters._
+
+    val streamNode = builder.build().describe().subtopologies().asScala.head.nodes().asScala.head
+    streamNode.name() shouldBe "my-fancy-name"
+  }
+
 }

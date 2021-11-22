@@ -148,6 +148,8 @@ abstract class WorkerTask implements Runnable {
         taskMetricsGroup.close();
     }
 
+    protected abstract void initializeAndStart();
+
     protected abstract void execute();
 
     protected abstract void close();
@@ -179,10 +181,10 @@ abstract class WorkerTask implements Runnable {
                     onPause();
                     if (!awaitUnpause()) return;
                 }
-
-                statusListener.onStartup(id);
             }
 
+            initializeAndStart();
+            statusListener.onStartup(id);
             execute();
         } catch (Throwable t) {
             log.error("{} Task threw an uncaught and unrecoverable exception. Task is being killed and will not recover until manually restarted", this, t);
@@ -299,7 +301,7 @@ abstract class WorkerTask implements Runnable {
      * @param duration the length of time in milliseconds for the commit attempt to complete
      */
     protected void recordCommitSuccess(long duration) {
-        taskMetricsGroup.recordCommit(duration, null);
+        taskMetricsGroup.recordCommit(duration, true, null);
     }
 
     /**
@@ -309,7 +311,7 @@ abstract class WorkerTask implements Runnable {
      * @param error the unexpected error that occurred; may be null in the case of timeouts or interruptions
      */
     protected void recordCommitFailure(long duration, Throwable error) {
-        taskMetricsGroup.recordCommit(duration, error);
+        taskMetricsGroup.recordCommit(duration, false, error);
     }
 
     /**
@@ -379,8 +381,8 @@ abstract class WorkerTask implements Runnable {
             metricGroup.close();
         }
 
-        void recordCommit(long duration, Throwable error) {
-            if (error == null) {
+        void recordCommit(long duration, boolean success, Throwable error) {
+            if (success) {
                 commitTime.record(duration);
                 commitAttempts.record(1.0d);
             } else {
