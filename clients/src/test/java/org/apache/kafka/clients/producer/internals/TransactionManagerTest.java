@@ -155,13 +155,13 @@ public class TransactionManagerTest {
 
         apiVersions.update("0", NodeApiVersions.create(Arrays.asList(
                 new ApiVersion()
-                    .setApiKey(ApiKeys.INIT_PRODUCER_ID.id)
-                    .setMinVersion((short) 0)
-                    .setMaxVersion((short) 3),
+                        .setApiKey(ApiKeys.INIT_PRODUCER_ID.id)
+                        .setMinVersion((short) 0)
+                        .setMaxVersion((short) 3),
                 new ApiVersion()
-                    .setApiKey(ApiKeys.PRODUCE.id)
-                    .setMinVersion((short) 0)
-                    .setMaxVersion((short) 7))));
+                        .setApiKey(ApiKeys.PRODUCE.id)
+                        .setMinVersion((short) 0)
+                        .setMaxVersion((short) 7))));
         this.transactionManager = new TransactionManager(logContext, transactionalId.orElse(null),
                 transactionTimeoutMs, DEFAULT_RETRY_BACKOFF_MS, apiVersions);
 
@@ -813,7 +813,7 @@ public class TransactionManagerTest {
         offsets.put(tp1, new OffsetAndMetadata(1));
 
         TransactionalRequestResult addOffsetsResult = transactionManager.sendOffsetsToTransaction(
-            offsets, new ConsumerGroupMetadata(consumerGroupId));
+                offsets, new ConsumerGroupMetadata(consumerGroupId));
 
         assertFalse(transactionManager.hasPendingOffsetCommits());
 
@@ -928,8 +928,8 @@ public class TransactionManagerTest {
         transactionManager.beginTransaction();
 
         TransactionalRequestResult sendOffsetsResult = transactionManager.sendOffsetsToTransaction(
-            singletonMap(tp, new OffsetAndMetadata(39L)),
-            new ConsumerGroupMetadata(consumerGroupId, 5, fencedMemberId, Optional.of(groupInstanceId)));
+                singletonMap(tp, new OffsetAndMetadata(39L)),
+                new ConsumerGroupMetadata(consumerGroupId, 5, fencedMemberId, Optional.of(groupInstanceId)));
 
         prepareAddOffsetsToTxnResponse(Errors.NONE, consumerGroupId, producerId, epoch);
         prepareFindCoordinatorResponse(Errors.NONE, false, CoordinatorType.GROUP, consumerGroupId);
@@ -941,7 +941,7 @@ public class TransactionManagerTest {
             assertEquals(producerId, txnOffsetCommitRequest.data().producerId());
             assertEquals(epoch, txnOffsetCommitRequest.data().producerEpoch());
             return txnOffsetCommitRequest.data().groupInstanceId().equals(groupInstanceId)
-                && !txnOffsetCommitRequest.data().memberId().equals(memberId);
+                    && !txnOffsetCommitRequest.data().memberId().equals(memberId);
         }, new TxnOffsetCommitResponse(0, singletonMap(tp, Errors.FENCED_INSTANCE_ID)));
 
         runUntil(transactionManager::hasError);
@@ -962,8 +962,8 @@ public class TransactionManagerTest {
         transactionManager.beginTransaction();
 
         TransactionalRequestResult sendOffsetsResult = transactionManager.sendOffsetsToTransaction(
-            singletonMap(tp, new OffsetAndMetadata(39L)),
-            new ConsumerGroupMetadata(consumerGroupId, 5, unknownMemberId, Optional.empty()));
+                singletonMap(tp, new OffsetAndMetadata(39L)),
+                new ConsumerGroupMetadata(consumerGroupId, 5, unknownMemberId, Optional.empty()));
 
         prepareAddOffsetsToTxnResponse(Errors.NONE, consumerGroupId, producerId, epoch);
         prepareFindCoordinatorResponse(Errors.NONE, false, CoordinatorType.GROUP, consumerGroupId);
@@ -995,9 +995,9 @@ public class TransactionManagerTest {
         transactionManager.beginTransaction();
 
         TransactionalRequestResult sendOffsetsResult = transactionManager.sendOffsetsToTransaction(
-            singletonMap(tp, new OffsetAndMetadata(39L)),
-            new ConsumerGroupMetadata(consumerGroupId, illegalGenerationId, JoinGroupRequest.UNKNOWN_MEMBER_ID,
-                Optional.empty()));
+                singletonMap(tp, new OffsetAndMetadata(39L)),
+                new ConsumerGroupMetadata(consumerGroupId, illegalGenerationId, JoinGroupRequest.UNKNOWN_MEMBER_ID,
+                        Optional.empty()));
 
         prepareAddOffsetsToTxnResponse(Errors.NONE, consumerGroupId, producerId, epoch);
         prepareFindCoordinatorResponse(Errors.NONE, false, CoordinatorType.GROUP, consumerGroupId);
@@ -1704,7 +1704,7 @@ public class TransactionManagerTest {
         assertThrows(ProducerFencedException.class, () -> transactionManager.beginCommit());
         assertThrows(ProducerFencedException.class, () -> transactionManager.beginAbort());
         assertThrows(ProducerFencedException.class, () -> transactionManager.sendOffsetsToTransaction(
-            Collections.emptyMap(), new ConsumerGroupMetadata("dummyId")));
+                Collections.emptyMap(), new ConsumerGroupMetadata("dummyId")));
     }
 
     @Test
@@ -1772,7 +1772,7 @@ public class TransactionManagerTest {
         assertThrows(ProducerFencedException.class, () -> transactionManager.beginCommit());
         assertThrows(ProducerFencedException.class, () -> transactionManager.beginAbort());
         assertThrows(ProducerFencedException.class, () -> transactionManager.sendOffsetsToTransaction(
-            Collections.emptyMap(), new ConsumerGroupMetadata("dummyId")));
+                Collections.emptyMap(), new ConsumerGroupMetadata("dummyId")));
     }
 
     @Test
@@ -1802,7 +1802,7 @@ public class TransactionManagerTest {
         assertThrows(KafkaException.class, () -> transactionManager.beginCommit());
         assertThrows(KafkaException.class, () -> transactionManager.beginAbort());
         assertThrows(KafkaException.class, () -> transactionManager.sendOffsetsToTransaction(
-            Collections.emptyMap(), new ConsumerGroupMetadata("dummyId")));
+                Collections.emptyMap(), new ConsumerGroupMetadata("dummyId")));
     }
 
     @Test
@@ -2143,7 +2143,7 @@ public class TransactionManagerTest {
         offsets.put(tp1, new OffsetAndMetadata(1));
 
         TransactionalRequestResult addOffsetsResult = transactionManager.sendOffsetsToTransaction(
-            offsets, new ConsumerGroupMetadata(consumerGroupId));
+                offsets, new ConsumerGroupMetadata(consumerGroupId));
         prepareAddOffsetsToTxnResponse(Errors.NONE, consumerGroupId, producerId, epoch);
         runUntil(() -> !client.hasPendingResponses());
         assertFalse(addOffsetsResult.isCompleted());  // The request should complete only after the TxnOffsetCommit completes.
@@ -2198,7 +2198,7 @@ public class TransactionManagerTest {
         offsets.put(tp1, new OffsetAndMetadata(1));
 
         TransactionalRequestResult addOffsetsResult = transactionManager.sendOffsetsToTransaction(
-            offsets, new ConsumerGroupMetadata(consumerGroupId));
+                offsets, new ConsumerGroupMetadata(consumerGroupId));
         prepareAddOffsetsToTxnResponse(Errors.NONE, consumerGroupId, producerId, epoch);
         runUntil(() -> !client.hasPendingResponses());
         assertFalse(addOffsetsResult.isCompleted());  // The request should complete only after the TxnOffsetCommit completes.
@@ -2291,8 +2291,8 @@ public class TransactionManagerTest {
         txnOffsetCommitResponse.put(tp1, Errors.COORDINATOR_LOAD_IN_PROGRESS);
 
         TransactionalRequestResult addOffsetsResult = prepareGroupMetadataCommit(
-            () -> prepareTxnOffsetCommitResponse(consumerGroupId, producerId,
-                epoch, groupInstanceId, memberId, generationId, txnOffsetCommitResponse));
+                () -> prepareTxnOffsetCommitResponse(consumerGroupId, producerId,
+                        epoch, groupInstanceId, memberId, generationId, txnOffsetCommitResponse));
 
         sender.runOnce();  // Send TxnOffsetCommitRequest request.
 
@@ -2316,7 +2316,7 @@ public class TransactionManagerTest {
         txnOffsetCommitResponse.put(tp1, Errors.COORDINATOR_LOAD_IN_PROGRESS);
 
         TransactionalRequestResult addOffsetsResult = prepareGroupMetadataCommit(
-            () -> prepareTxnOffsetCommitResponse(consumerGroupId, producerId, epoch, txnOffsetCommitResponse));
+                () -> prepareTxnOffsetCommitResponse(consumerGroupId, producerId, epoch, txnOffsetCommitResponse));
 
         sender.runOnce();
 
@@ -2335,7 +2335,7 @@ public class TransactionManagerTest {
         offsets.put(tp1, new OffsetAndMetadata(1));
 
         TransactionalRequestResult addOffsetsResult = transactionManager.sendOffsetsToTransaction(
-            offsets, new ConsumerGroupMetadata(consumerGroupId, generationId, memberId, Optional.of(groupInstanceId)));
+                offsets, new ConsumerGroupMetadata(consumerGroupId, generationId, memberId, Optional.of(groupInstanceId)));
         prepareAddOffsetsToTxnResponse(Errors.NONE, consumerGroupId, producerId, epoch);
 
         sender.runOnce();  // send AddOffsetsToTxnResult
@@ -2617,13 +2617,13 @@ public class TransactionManagerTest {
     public void testTransitionToFatalErrorWhenRetriedBatchIsExpired() throws InterruptedException {
         apiVersions.update("0", NodeApiVersions.create(Arrays.asList(
                 new ApiVersion()
-                    .setApiKey(ApiKeys.INIT_PRODUCER_ID.id)
-                    .setMinVersion((short) 0)
-                    .setMaxVersion((short) 1),
+                        .setApiKey(ApiKeys.INIT_PRODUCER_ID.id)
+                        .setMinVersion((short) 0)
+                        .setMaxVersion((short) 1),
                 new ApiVersion()
-                    .setApiKey(ApiKeys.PRODUCE.id)
-                    .setMinVersion((short) 0)
-                    .setMaxVersion((short) 7))));
+                        .setApiKey(ApiKeys.PRODUCE.id)
+                        .setMinVersion((short) 0)
+                        .setMaxVersion((short) 7))));
 
         doInitTransactions();
 
@@ -2868,13 +2868,13 @@ public class TransactionManagerTest {
         // append to the log successfully
         apiVersions.update("0", NodeApiVersions.create(Arrays.asList(
                 new ApiVersion()
-                    .setApiKey(ApiKeys.INIT_PRODUCER_ID.id)
-                    .setMinVersion((short) 0)
-                    .setMaxVersion((short) 1),
+                        .setApiKey(ApiKeys.INIT_PRODUCER_ID.id)
+                        .setMinVersion((short) 0)
+                        .setMaxVersion((short) 1),
                 new ApiVersion()
-                    .setApiKey(ApiKeys.PRODUCE.id)
-                    .setMinVersion((short) 0)
-                    .setMaxVersion((short) 7))));
+                        .setApiKey(ApiKeys.PRODUCE.id)
+                        .setMinVersion((short) 0)
+                        .setMaxVersion((short) 7))));
 
         doInitTransactions();
 
@@ -3497,16 +3497,16 @@ public class TransactionManagerTest {
                                        final short epoch,
                                        final boolean shouldDisconnect) {
         client.prepareResponse(endTxnMatcher(result, producerId, epoch),
-                               new EndTxnResponse(new EndTxnResponseData()
-                                                      .setErrorCode(error.code())
-                                                      .setThrottleTimeMs(0)), shouldDisconnect);
+                new EndTxnResponse(new EndTxnResponseData()
+                        .setErrorCode(error.code())
+                        .setThrottleTimeMs(0)), shouldDisconnect);
     }
 
     private void sendEndTxnResponse(Errors error, final TransactionResult result, final long producerId, final short epoch) {
         client.respond(endTxnMatcher(result, producerId, epoch), new EndTxnResponse(
-            new EndTxnResponseData()
-                .setErrorCode(error.code())
-                .setThrottleTimeMs(0)
+                new EndTxnResponseData()
+                        .setErrorCode(error.code())
+                        .setThrottleTimeMs(0)
         ));
     }
 
@@ -3526,15 +3526,15 @@ public class TransactionManagerTest {
                                                 final long producerId,
                                                 final short producerEpoch) {
         client.prepareResponse(body -> {
-            AddOffsetsToTxnRequest addOffsetsToTxnRequest = (AddOffsetsToTxnRequest) body;
-            assertEquals(consumerGroupId, addOffsetsToTxnRequest.data().groupId());
-            assertEquals(transactionalId, addOffsetsToTxnRequest.data().transactionalId());
-            assertEquals(producerId, addOffsetsToTxnRequest.data().producerId());
-            assertEquals(producerEpoch, addOffsetsToTxnRequest.data().producerEpoch());
-            return true;
-        }, new AddOffsetsToTxnResponse(
-            new AddOffsetsToTxnResponseData()
-                .setErrorCode(error.code()))
+                    AddOffsetsToTxnRequest addOffsetsToTxnRequest = (AddOffsetsToTxnRequest) body;
+                    assertEquals(consumerGroupId, addOffsetsToTxnRequest.data().groupId());
+                    assertEquals(transactionalId, addOffsetsToTxnRequest.data().transactionalId());
+                    assertEquals(producerId, addOffsetsToTxnRequest.data().producerId());
+                    assertEquals(producerEpoch, addOffsetsToTxnRequest.data().producerEpoch());
+                    return true;
+                }, new AddOffsetsToTxnResponse(
+                        new AddOffsetsToTxnResponseData()
+                                .setErrorCode(error.code()))
         );
     }
 
